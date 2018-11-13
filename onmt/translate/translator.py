@@ -5,6 +5,9 @@ import argparse
 import codecs
 import os
 import math
+import seaborn
+import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
 
@@ -50,8 +53,15 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     translator = Translator(model, fields, global_scorer=scorer,
                             out_file=out_file, report_score=report_score,
                             copy_attn=model_opt.copy_attn, logger=logger,
+                            attn_min_threshold=opt.attn_min_threshold, attn_output=opt.attn_output,
+                            attn_max_src_length=opt.attn_max_src_length,
                             **kwargs)
     return translator
+
+def draw(data, x, y, ax):
+    seaborn.heatmap(data,
+                    xticklabels=x, yticklabels=y, vmin=0.0, vmax=1.0,
+                    cbar=False, linewidths=0.05, ax=ax)
 
 
 class Translator(object):
@@ -78,6 +88,9 @@ class Translator(object):
                  model,
                  fields,
                  beam_size,
+                 attn_min_threshold,
+                 attn_output,
+                 attn_max_src_length,
                  n_best=1,
                  max_length=100,
                  global_scorer=None,
@@ -143,6 +156,12 @@ class Translator(object):
                 "beam_parent_ids": [],
                 "scores": [],
                 "log_probs": []}
+
+        # For attention visualization
+        if(attn_output is not None):
+            self.attn_min_threshold = attn_min_threshold
+            self.attn_output = attn_output
+            self.attn_max_src_length = attn_max_src_length
 
     def translate(self,
                   src_path=None,
@@ -218,11 +237,11 @@ class Translator(object):
         all_scores = []
         all_predictions = []
 
-        for batch in data_iter:
+        for batch_count, batch in enumerate(data_iter):
             batch_data = self.translate_batch(batch, data, fast=self.fast)
             translations = builder.from_batch(batch_data)
 
-            for trans in translations:
+            for trans_count, trans in enumerate(translations):
                 all_scores += [trans.pred_scores[:self.n_best]]
                 pred_score_total += trans.pred_scores[0]
                 pred_words_total += len(trans.pred_sents[0])
@@ -233,7 +252,7 @@ class Translator(object):
                 n_best_preds = [" ".join(pred)
                                 for pred in trans.pred_sents[:self.n_best]]
                 all_predictions += [n_best_preds]
-                if(out_file is not None):
+                if(self.out_file is not None):
                     self.out_file.write('\n'.join(n_best_preds) + '\n')
                     self.out_file.flush()
 
@@ -266,6 +285,43 @@ class Translator(object):
                         output += row_format.format(word, *row) + '\n'
                         row_format = "{:>10.10} " + "{:>10.7f} " * len(srcs)
                     os.write(1, output.encode('utf-8'))
+
+                if self.attn_output is not None:
+                    for n_best_index in range(self.n_best):
+                        attn_matrix = trans.attns[n_best_index].data.numpy().T
+                        (row, col) = attn_matrix.shape
+
+                        below_threshold = True
+                        for row_index in range(row):
+                            for value in attn_matrix[row_index,:]:
+                                if(value > self.attn_min_threshold):
+                                    below_threshold = False
+                                    start_index = row_index
+                                    break
+                            if(not below_threshold):
+                                break
+
+                        below_threshold = True
+                        for row_index in reversed(range(row)):
+                            for value in attn_matrix[row_index,:]:
+                                if(value > self.attn_min_threshold):
+                                    below_threshold = False
+                                    end_index = row_index
+                            if(not below_threshold):
+                                break
+
+                        if(start_index is None or end_index is None):
+                            os.write(1, "Cannot find attention values more than " + str(opt.attn_min_threshold))
+                            os.write(1, "Please lower attn_min_threshold")
+                        else:
+                            attn_matrix = attn_matrix[start_index:end_index+1,:]
+                            src_raw = trans.src_raw[start_index:end_index+1]
+                            if(len(src_raw) > self.attn_max_src_length):
+                                continue
+                            else:
+                                fig, ax = plt.subplots(figsize=(20, 20))
+                                draw(attn_matrix, trans.pred_sents[n_best_index], src_raw, ax)
+                                plt.savefig(os.path.join(self.attn_output, str(batch_count*batch_size+trans_count+1)+"_"+str(n_best_index)+".png"))
 
         if self.report_score:
             msg = self._report_score('PRED', pred_score_total,
