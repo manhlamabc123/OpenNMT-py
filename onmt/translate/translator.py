@@ -8,6 +8,7 @@ import math
 import seaborn
 import numpy as np
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 
 import torch
 
@@ -287,6 +288,7 @@ class Translator(object):
                     os.write(1, output.encode('utf-8'))
 
                 if self.attn_output is not None:
+                    fig, ax = plt.subplots(figsize=(20, 20))
                     for n_best_index in range(self.n_best):
                         attn_matrix = trans.attns[n_best_index].data.numpy().T
                         (row, col) = attn_matrix.shape
@@ -319,9 +321,10 @@ class Translator(object):
                             if(len(src_raw) > self.attn_max_src_length):
                                 continue
                             else:
-                                fig, ax = plt.subplots(figsize=(20, 20))
                                 draw(attn_matrix, trans.pred_sents[n_best_index], src_raw, ax)
                                 plt.savefig(os.path.join(self.attn_output, str(batch_count*batch_size+trans_count+1)+"_"+str(n_best_index)+".png"))
+                                plt.cla()
+                    plt.close(fig)
 
         if self.report_score:
             msg = self._report_score('PRED', pred_score_total,
