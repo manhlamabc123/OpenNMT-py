@@ -19,7 +19,7 @@ import onmt.decoders.ensemble
 
 
 def build_translator(opt, report_score=True, logger=None, out_file=None):
-    if out_file is None:
+    if out_file is None and opt.output is not None:
         out_file = codecs.open(opt.output, 'w+', 'utf-8')
 
     dummy_parser = argparse.ArgumentParser(description='train.py')
@@ -233,8 +233,9 @@ class Translator(object):
                 n_best_preds = [" ".join(pred)
                                 for pred in trans.pred_sents[:self.n_best]]
                 all_predictions += [n_best_preds]
-                self.out_file.write('\n'.join(n_best_preds) + '\n')
-                self.out_file.flush()
+                if(out_file is not None):
+                    self.out_file.write('\n'.join(n_best_preds) + '\n')
+                    self.out_file.flush()
 
                 if self.verbose:
                     sent_number = next(counter)

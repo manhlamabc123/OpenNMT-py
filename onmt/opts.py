@@ -467,7 +467,7 @@ def translate_opts(parser):
                        help='Source directory for image or audio files')
     group.add_argument('-tgt',
                        help='True target sequence (optional)')
-    group.add_argument('-output', default='pred.txt',
+    group.add_argument('-output',
                        help="""Path to output the predictions (each line will
                        be the decoded sequence""")
     group.add_argument('-report_bleu', action='store_true',
@@ -563,6 +563,14 @@ def translate_opts(parser):
                        help="""Using grayscale image can training
                        model faster and smaller""")
 
+    # Options for visualize attention
+    group = parser.add_argument_group('Visualize')
+    group.add_argument('-attn_min_threshold', type=float, default=1e-3,
+                       help='Minimum attention value to consider')
+    group.add_argument('-attn_output',
+                       help='Directory for saving visualization')
+    group.add_argument('-attn_max_src_length', type=float, default=100,
+                       help='Maximum src code length after applying Minimum attention value')
 
 def add_md_help_argument(parser):
     """ md help parser """
