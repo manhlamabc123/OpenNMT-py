@@ -467,6 +467,122 @@ def translate_opts(parser):
                        help='Source directory for image or audio files')
     group.add_argument('-tgt',
                        help='True target sequence (optional)')
+    group.add_argument('-output', default='pred.txt',
+                       help="""Path to output the predictions (each line will
+                       be the decoded sequence""")
+    group.add_argument('-report_bleu', action='store_true',
+                       help="""Report bleu score after translation,
+                       call tools/multi-bleu.perl on command line""")
+    group.add_argument('-report_rouge', action='store_true',
+                       help="""Report rouge 1/2/3/L/SU4 score after translation
+                       call tools/test_rouge.py on command line""")
+
+    # Options most relevant to summarization.
+    group.add_argument('-dynamic_dict', action='store_true',
+                       help="Create dynamic dictionaries")
+    group.add_argument('-share_vocab', action='store_true',
+                       help="Share source and target vocabulary")
+
+    group = parser.add_argument_group('Beam')
+    group.add_argument('-fast', action="store_true",
+                       help="""Use fast beam search (some features may not be
+                       supported!)""")
+    group.add_argument('-beam_size', type=int, default=5,
+                       help='Beam size')
+    group.add_argument('-min_length', type=int, default=0,
+                       help='Minimum prediction length')
+    group.add_argument('-max_length', type=int, default=100,
+                       help='Maximum prediction length.')
+    group.add_argument('-max_sent_length', action=DeprecateAction,
+                       help="Deprecated, use `-max_length` instead")
+
+    # Alpha and Beta values for Google Length + Coverage penalty
+    # Described here: https://arxiv.org/pdf/1609.08144.pdf, Section 7
+    group.add_argument('-stepwise_penalty', action='store_true',
+                       help="""Apply penalty at every decoding step.
+                       Helpful for summary penalty.""")
+    group.add_argument('-length_penalty', default='none',
+                       choices=['none', 'wu', 'avg'],
+                       help="""Length Penalty to use.""")
+    group.add_argument('-coverage_penalty', default='none',
+                       choices=['none', 'wu', 'summary'],
+                       help="""Coverage Penalty to use.""")
+    group.add_argument('-alpha', type=float, default=0.,
+                       help="""Google NMT length penalty parameter
+                        (higher = longer generation)""")
+    group.add_argument('-beta', type=float, default=-0.,
+                       help="""Coverage penalty parameter""")
+    group.add_argument('-block_ngram_repeat', type=int, default=0,
+                       help='Block repetition of ngrams during decoding.')
+    group.add_argument('-ignore_when_blocking', nargs='+', type=str,
+                       default=[],
+                       help="""Ignore these strings when blocking repeats.
+                       You want to block sentence delimiters.""")
+    group.add_argument('-replace_unk', action="store_true",
+                       help="""Replace the generated UNK tokens with the
+                       source token that had highest attention weight. If
+                       phrase_table is provided, it will lookup the
+                       identified source token and give the corresponding
+                       target token. If it is not provided(or the identified
+                       source token does not exist in the table) then it
+                       will copy the source token""")
+
+    group = parser.add_argument_group('Logging')
+    group.add_argument('-verbose', action="store_true",
+                       help='Print scores and predictions for each sentence')
+    group.add_argument('-log_file', type=str, default="",
+                       help="Output logs to a file under this path.")
+    group.add_argument('-attn_debug', action="store_true",
+                       help='Print best attn for each word')
+    group.add_argument('-dump_beam', type=str, default="",
+                       help='File to dump beam information to.')
+    group.add_argument('-n_best', type=int, default=1,
+                       help="""If verbose is set, will output the n_best
+                       decoded sentences""")
+
+    group = parser.add_argument_group('Efficiency')
+    group.add_argument('-batch_size', type=int, default=30,
+                       help='Batch size')
+    group.add_argument('-gpu', type=int, default=-1,
+                       help="Device to run on")
+
+    # Options most relevant to speech.
+    group = parser.add_argument_group('Speech')
+    group.add_argument('-sample_rate', type=int, default=16000,
+                       help="Sample rate.")
+    group.add_argument('-window_size', type=float, default=.02,
+                       help='Window size for spectrogram in seconds')
+    group.add_argument('-window_stride', type=float, default=.01,
+                       help='Window stride for spectrogram in seconds')
+    group.add_argument('-window', default='hamming',
+                       help='Window type for spectrogram generation')
+
+    # Option most relevant to image input
+    group.add_argument('-image_channel_size', type=int, default=3,
+                       choices=[3, 1],
+                       help="""Using grayscale image can training
+                       model faster and smaller""")
+
+def visualize_opts(parser):
+    """ Translation / inference options """
+    group = parser.add_argument_group('Model')
+    group.add_argument('-model', dest='models', metavar='MODEL',
+                       nargs='+', type=str, default=[], required=True,
+                       help='Path to model .pt file(s). '
+                            'Multiple models can be specified, '
+                            'for ensemble decoding.')
+
+    group = parser.add_argument_group('Data')
+    group.add_argument('-data_type', default="text",
+                       help="Type of the source input. Options: [text|img].")
+
+    group.add_argument('-src', required=True,
+                       help="""Source sequence to decode (one line per
+                       sequence)""")
+    group.add_argument('-src_dir', default="",
+                       help='Source directory for image or audio files')
+    group.add_argument('-tgt',
+                       help='True target sequence (optional)')
     group.add_argument('-output',
                        help="""Path to output the predictions (each line will
                        be the decoded sequence""")
