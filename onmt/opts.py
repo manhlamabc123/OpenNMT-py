@@ -568,7 +568,7 @@ def translate_opts(parser):
                        help='Minimum attention value to consider')
     group.add_argument('-attn_output',
                        help='Directory for saving visualization')
-    group.add_argument('-attn_max_src_length', type=float, default=100,
+    group.add_argument('-attn_max_src_length', type=float, default=50,
                        help='Maximum src code length after applying Minimum attention value')
 
 def add_md_help_argument(parser):
