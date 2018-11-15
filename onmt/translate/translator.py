@@ -163,6 +163,8 @@ class Translator(object):
             self.attn_min_threshold = attn_min_threshold
             self.attn_output = attn_output
             self.attn_max_src_length = attn_max_src_length
+        else:
+            self.attn_output = None
 
     def translate(self,
                   src_path=None,
