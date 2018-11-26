@@ -36,11 +36,10 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
 
     scorer = onmt.translate.GNMTGlobalScorer(opt)
 
+    print("attn_max_src_length: " + str(opt.attn_max_src_length))
     translator = Translator(model, fields, opt, model_opt,
                             global_scorer=scorer, out_file=out_file,
-                            report_score=report_score, logger=logger,
-                            attn_min_threshold=opt.attn_min_threshold, attn_output=opt.attn_output,
-                            attn_max_src_length=opt.attn_max_src_length)
+                            report_score=report_score, logger=logger)
 
     return translator
 
@@ -73,10 +72,6 @@ class Translator(object):
     def __init__(self,
                  model,
                  fields,
-                 beam_size,
-                 attn_min_threshold,
-                 attn_output,
-                 attn_max_src_length,
                  opt,
                  model_opt,
                  n_best=1,
@@ -131,10 +126,10 @@ class Translator(object):
                 "log_probs": []}
 
         # For attention visualization
-        if(attn_output is not None):
-            self.attn_min_threshold = attn_min_threshold
-            self.attn_output = attn_output
-            self.attn_max_src_length = attn_max_src_length
+        if(opt.attn_output is not None):
+            self.attn_min_threshold = opt.attn_min_threshold
+            self.attn_output = opt.attn_output
+            self.attn_max_src_length = opt.attn_max_src_length
         else:
             self.attn_output = None
 
@@ -287,7 +282,7 @@ class Translator(object):
                                 break
 
                         if(start_index is None or end_index is None):
-                            os.write(1, "Cannot find attention values more than " + str(opt.attn_min_threshold))
+                            os.write(1, "Cannot find attention values more than " + str(self.attn_min_threshold))
                             os.write(1, "Please lower attn_min_threshold")
                         else:
                             attn_matrix = attn_matrix[start_index:end_index+1,:]
