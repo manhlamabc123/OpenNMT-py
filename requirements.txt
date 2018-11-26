@@ -6,3 +6,4 @@ future
 seaborn
 numpy
 matplotlib
+configargparse
