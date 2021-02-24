@@ -1,3 +1,4 @@
+Cython
 six
 tqdm
 numpy==1.18.0
