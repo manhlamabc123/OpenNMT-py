@@ -1,7 +1,7 @@
 six
 tqdm
 torch==1.1.0
-git+https://github.com/pytorch/text
+torchtext==0.3.1
 future
 seaborn
 numpy
